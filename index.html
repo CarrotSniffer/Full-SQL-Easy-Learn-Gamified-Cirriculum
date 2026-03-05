@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Bootcamp - Medical Spa SQL Training</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+
+    <!-- CodeMirror 5 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.css">
+
+    <!-- App Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header id="app-header">
+        <div class="header-left">
+            <button id="sidebar-toggle" class="icon-btn" aria-label="Toggle sidebar">
+                <span class="hamburger"></span>
+            </button>
+            <h1 class="logo">SQL Bootcamp</h1>
+        </div>
+        <div class="header-center">
+            <div id="xp-bar-area">
+                <div id="level-badge" title="Your level">
+                    <span id="level-number">1</span>
+                </div>
+                <div id="xp-bar-wrapper">
+                    <div id="xp-bar-container">
+                        <div id="xp-bar-fill"></div>
+                    </div>
+                    <span id="xp-bar-text">0 / 100 XP</span>
+                </div>
+                <div id="streak-badge" title="Daily streak">
+                    <span id="streak-icon">&#128293;</span>
+                    <span id="streak-count">0</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button id="daily-challenge-btn" class="icon-btn" title="Daily Challenge">&#9876;</button>
+            <button id="stats-btn" class="icon-btn" title="Player Stats">&#128202;</button>
+            <button id="schema-btn" class="icon-btn" title="Schema Explorer">&#128451;</button>
+            <button id="achievements-btn" class="icon-btn" title="Achievements">&#127942;</button>
+            <button id="theme-toggle" class="icon-btn" title="Toggle theme">&#9790;</button>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div id="app-layout">
+        <!-- Sidebar -->
+        <aside id="sidebar">
+            <nav id="module-nav"></nav>
+        </aside>
+
+        <!-- Sidebar overlay for mobile -->
+        <div id="sidebar-overlay"></div>
+
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Welcome Screen -->
+            <div id="welcome-screen">
+                <div class="welcome-inner">
+                    <h2>Welcome to SQL Bootcamp</h2>
+                    <p>Master SQL using real medical spa data — staff, clients, treatments, appointments, invoices, and products. Write real queries, get instant feedback, and level up your database skills.</p>
+                    <div class="welcome-stats">
+                        <div class="stat-card">
+                            <span class="stat-number">12</span>
+                            <span class="stat-label">Modules</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">60+</span>
+                            <span class="stat-label">Lessons</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">9</span>
+                            <span class="stat-label">Tables</span>
+                        </div>
+                    </div>
+                    <button id="start-learning-btn" class="btn btn-primary btn-lg">Start Learning</button>
+                    <button id="continue-learning-btn" class="btn btn-secondary btn-lg" style="display:none;">Continue Learning</button>
+                </div>
+            </div>
+
+            <!-- Lesson View -->
+            <div id="lesson-view" style="display:none;">
+                <div id="lesson-panel">
+                    <div id="lesson-header">
+                        <span id="lesson-breadcrumb"></span>
+                        <div id="lesson-nav-btns">
+                            <button id="prev-lesson-btn" class="btn btn-sm">Previous</button>
+                            <button id="next-lesson-btn" class="btn btn-sm btn-primary">Next</button>
+                        </div>
+                    </div>
+                    <div id="lesson-content"></div>
+                </div>
+
+                <div id="right-panel">
+                    <div id="editor-panel">
+                        <div id="editor-toolbar">
+                            <span class="toolbar-label">SQL Editor</span>
+                            <div class="toolbar-actions">
+                                <button id="run-btn" class="btn btn-primary btn-sm" title="Run Query (Ctrl+Enter)">Run</button>
+                                <button id="reset-btn" class="btn btn-sm" title="Reset Editor">Reset</button>
+                                <button id="hint-btn" class="btn btn-sm" title="Get a Hint" style="display:none;">Hint</button>
+                                <button id="solution-btn" class="btn btn-sm" title="Show Solution" style="display:none;">Solution</button>
+                            </div>
+                        </div>
+                        <div id="editor-container"></div>
+                    </div>
+
+                    <div id="results-panel">
+                        <div id="results-toolbar">
+                            <span class="toolbar-label">Results</span>
+                            <span id="query-time"></span>
+                        </div>
+                        <div id="results-content">
+                            <p class="placeholder-text">Run a query to see results here.</p>
+                        </div>
+                        <div id="exercise-feedback" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Schema Explorer Modal -->
+    <div id="schema-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Schema Explorer</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div id="schema-body"></div>
+        </div>
+    </div>
+
+    <!-- Achievements Modal -->
+    <div id="achievements-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Achievements</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div id="achievements-body"></div>
+        </div>
+    </div>
+
+    <!-- Combo Indicator -->
+    <div id="combo-indicator" class="hidden">
+        <span id="combo-count">0</span>
+        <span id="combo-label">COMBO</span>
+        <span id="combo-multiplier">x1</span>
+    </div>
+
+    <!-- XP Popup (shows XP gains) -->
+    <div id="xp-popup" class="hidden">
+        <div id="xp-popup-content"></div>
+    </div>
+
+    <!-- Level Up Overlay -->
+    <div id="levelup-overlay" class="hidden">
+        <div id="levelup-content">
+            <div id="levelup-badge">&#11088;</div>
+            <div id="levelup-text">LEVEL UP!</div>
+            <div id="levelup-level"></div>
+            <div id="levelup-title"></div>
+        </div>
+    </div>
+
+    <!-- Particle Container -->
+    <div id="particle-container"></div>
+
+    <!-- Stats Modal -->
+    <div id="stats-modal" class="modal" style="display:none;">
+        <div class="modal-content modal-wide">
+            <div class="modal-header">
+                <h3>Player Stats</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div id="stats-body"></div>
+        </div>
+    </div>
+
+    <!-- Daily Challenge Modal -->
+    <div id="daily-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Daily Challenge</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div id="daily-body"></div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- CDN Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/sql/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/sql-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.11.0/dist/sql-wasm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Curriculum Modules (must load before curriculum.js) -->
+    <script src="js/curriculum/module01.js"></script>
+    <script src="js/curriculum/module02.js"></script>
+    <script src="js/curriculum/module03.js"></script>
+    <script src="js/curriculum/module04.js"></script>
+    <script src="js/curriculum/module05.js"></script>
+    <script src="js/curriculum/module06.js"></script>
+    <script src="js/curriculum/module07.js"></script>
+    <script src="js/curriculum/module08.js"></script>
+    <script src="js/curriculum/module09.js"></script>
+    <script src="js/curriculum/module10.js"></script>
+    <script src="js/curriculum/module11.js"></script>
+    <script src="js/curriculum/module12.js"></script>
+
+    <!-- App Scripts (order matters) -->
+    <script src="js/curriculum.js"></script>
+    <script src="js/database.js"></script>
+    <script src="js/progress.js"></script>
+    <script src="js/gamification.js"></script>
+    <script src="js/editor.js"></script>
+    <script src="js/exercises.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
