@@ -149,6 +149,60 @@ Deleting a client who has appointments will fail if foreign key enforcement is o
         },
         {
             lessonId: 4,
+            title: 'Use Case: End-of-Day Data Tasks',
+            type: 'reading',
+            content: `## Real Scenario: Receptionist's End-of-Day Routine
+
+Every evening, the front desk handles data cleanup tasks using INSERT, UPDATE, and DELETE.
+
+### 1. Register Walk-In Clients
+
+\`\`\`sql
+INSERT INTO clients (first_name, last_name, phone, city, state, signup_date, referral_source)
+VALUES ('Walk', 'In-Client', '480-555-9999', 'Scottsdale', 'AZ', DATE('now'), 'Walk-in');
+\`\`\`
+
+### 2. Update Appointment Statuses
+
+\`\`\`sql
+-- Mark today's scheduled appointments as completed
+UPDATE appointments
+SET status = 'completed'
+WHERE status = 'scheduled'
+  AND appointment_date <= DATE('now');
+\`\`\`
+
+### 3. Adjust Inventory After Sales
+
+\`\`\`sql
+-- Decrement stock for a product that was sold
+UPDATE products
+SET stock_quantity = stock_quantity - 1
+WHERE product_id = 5 AND stock_quantity > 0;
+\`\`\`
+
+### 4. Clean Up Old Cancelled Appointments
+
+\`\`\`sql
+-- Preview first!
+SELECT COUNT(*) AS to_delete
+FROM appointments
+WHERE status = 'cancelled'
+  AND appointment_date < DATE('now', '-90 days');
+
+-- Then delete
+DELETE FROM appointments
+WHERE status = 'cancelled'
+  AND appointment_date < DATE('now', '-90 days');
+\`\`\``,
+            exampleQueries: [
+                { label: 'Register walk-in client', sql: "INSERT INTO clients (first_name, last_name, phone, city, state, signup_date, referral_source) VALUES ('Walk', 'In-Client', '480-555-9999', 'Scottsdale', 'AZ', '2025-03-05', 'Walk-in');\nSELECT * FROM clients WHERE referral_source = 'Walk-in' ORDER BY client_id DESC LIMIT 3;" },
+                { label: 'Batch update statuses', sql: "SELECT status, COUNT(*) FROM appointments GROUP BY status;\nUPDATE appointments SET status = 'completed' WHERE status = 'scheduled' AND appointment_date < '2025-03-01';\nSELECT status, COUNT(*) FROM appointments GROUP BY status;" },
+                { label: 'Preview before delete', sql: "SELECT COUNT(*) AS will_delete FROM appointments WHERE status = 'cancelled';" }
+            ]
+        },
+        {
+            lessonId: 5,
             title: 'Exercise: Spa Data Updates',
             type: 'exercise',
             content: `## Exercise: Bulk Price Adjustment
@@ -167,7 +221,7 @@ The spa is running a spring promotion — all Facial treatments need a 15% disco
             }
         },
         {
-            lessonId: 5,
+            lessonId: 6,
             title: 'Exercise: Add a New Client',
             type: 'exercise',
             content: `## Exercise: Client Registration
@@ -181,6 +235,44 @@ Register a new client in the system and verify they were added.`,
                     'Use INSERT INTO clients (columns...) VALUES (values...);',
                     'Follow the INSERT with a SELECT to verify: SELECT first_name, last_name, email, city FROM clients WHERE email = \'emma.r@email.com\';',
                     "INSERT INTO clients (first_name, last_name, email, phone, city, state, signup_date, referral_source) VALUES ('Emma', 'Rodriguez', 'emma.r@email.com', '602-555-0188', 'Phoenix', 'AZ', '2025-03-05', 'Yelp');\nSELECT first_name, last_name, email, city FROM clients WHERE email = 'emma.r@email.com';"
+                ],
+                orderMatters: false
+            }
+        },
+        {
+            lessonId: 7,
+            title: 'Exercise: Inventory Restock',
+            type: 'exercise',
+            content: `## Exercise: Restock Skincare Products
+
+A shipment of serums just arrived. Update the inventory and verify the changes.`,
+            exercise: {
+                prompt: 'UPDATE products to add 15 to the stock_quantity for all products in the \'Serums\' category. Then SELECT product_name, category, stock_quantity FROM products WHERE category = \'Serums\' ORDER BY product_name.',
+                startingCode: '-- Restock serums\n',
+                expectedQuery: "UPDATE products SET stock_quantity = stock_quantity + 15 WHERE category = 'Serums';\nSELECT product_name, category, stock_quantity FROM products WHERE category = 'Serums' ORDER BY product_name;",
+                hints: [
+                    'UPDATE products SET stock_quantity = stock_quantity + 15 WHERE category = \'Serums\';',
+                    'Then verify with SELECT product_name, category, stock_quantity FROM products WHERE category = \'Serums\' ORDER BY product_name;',
+                    "UPDATE products SET stock_quantity = stock_quantity + 15 WHERE category = 'Serums';\nSELECT product_name, category, stock_quantity FROM products WHERE category = 'Serums' ORDER BY product_name;"
+                ],
+                orderMatters: false
+            }
+        },
+        {
+            lessonId: 8,
+            title: 'Exercise: Cancel Old Appointments',
+            type: 'exercise',
+            content: `## Exercise: Data Cleanup
+
+Clean up stale scheduled appointments that were never completed. Always preview before deleting!`,
+            exercise: {
+                prompt: 'First SELECT COUNT(*) as "will_delete" FROM appointments WHERE status = \'scheduled\' AND appointment_date < \'2024-06-01\'. Then DELETE those rows. Then SELECT COUNT(*) as "remaining" FROM appointments.',
+                startingCode: '-- Clean up old scheduled appointments\n',
+                expectedQuery: "SELECT COUNT(*) AS will_delete FROM appointments WHERE status = 'scheduled' AND appointment_date < '2024-06-01';\nDELETE FROM appointments WHERE status = 'scheduled' AND appointment_date < '2024-06-01';\nSELECT COUNT(*) AS remaining FROM appointments;",
+                hints: [
+                    'Three statements: SELECT COUNT to preview, DELETE to remove, SELECT COUNT to confirm.',
+                    'All three use the same WHERE clause: status = \'scheduled\' AND appointment_date < \'2024-06-01\'.',
+                    "SELECT COUNT(*) AS will_delete FROM appointments WHERE status = 'scheduled' AND appointment_date < '2024-06-01';\nDELETE FROM appointments WHERE status = 'scheduled' AND appointment_date < '2024-06-01';\nSELECT COUNT(*) AS remaining FROM appointments;"
                 ],
                 orderMatters: false
             }

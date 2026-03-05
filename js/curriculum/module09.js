@@ -87,7 +87,7 @@ FROM provider_stats ps, avg_stats as2
 ORDER BY ps.total_revenue DESC;
 \`\`\`
 
-### Pattern: Build → Aggregate → Compare
+### Pattern: Build -> Aggregate -> Compare
 
 1. First CTE: raw data grouped by entity
 2. Second CTE: compute averages/totals from first
@@ -153,6 +153,72 @@ SELECT * FROM org_chart ORDER BY level, name;
         },
         {
             lessonId: 4,
+            title: 'Use Case: Building a Complete Revenue Report',
+            type: 'reading',
+            content: `## Real Scenario: Department Revenue Comparison
+
+The CFO wants a report showing revenue by department compared to the overall average, flagging departments as "Above Target" or "Below Target."
+
+### Step-by-Step with 3 CTEs
+
+\`\`\`sql
+WITH dept_revenue AS (
+    -- CTE 1: Revenue per department
+    SELECT d.department_name,
+           ROUND(SUM(t.price), 2) AS revenue
+    FROM appointments a
+    JOIN staff s ON a.staff_id = s.staff_id
+    JOIN departments d ON s.department_id = d.department_id
+    JOIN treatments t ON a.treatment_id = t.treatment_id
+    WHERE a.status = 'completed'
+    GROUP BY d.department_id
+),
+avg_revenue AS (
+    -- CTE 2: Overall average from CTE 1
+    SELECT ROUND(AVG(revenue), 2) AS avg_rev
+    FROM dept_revenue
+),
+comparison AS (
+    -- CTE 3: Compare each department
+    SELECT dr.department_name,
+           dr.revenue,
+           ar.avg_rev,
+           CASE WHEN dr.revenue >= ar.avg_rev
+                THEN 'Above Target' ELSE 'Below Target'
+           END AS status
+    FROM dept_revenue dr, avg_revenue ar
+)
+SELECT * FROM comparison
+ORDER BY revenue DESC;
+\`\`\`
+
+This pattern — Build, Aggregate, Compare — is the backbone of business intelligence reporting.`,
+            exampleQueries: [
+                { label: 'Department revenue report', sql: "WITH dept_revenue AS (\n    SELECT d.department_name, ROUND(SUM(t.price), 2) AS revenue\n    FROM appointments a\n    JOIN staff s ON a.staff_id = s.staff_id\n    JOIN departments d ON s.department_id = d.department_id\n    JOIN treatments t ON a.treatment_id = t.treatment_id\n    WHERE a.status = 'completed'\n    GROUP BY d.department_id\n),\navg_revenue AS (\n    SELECT ROUND(AVG(revenue), 2) AS avg_rev FROM dept_revenue\n)\nSELECT dr.department_name, dr.revenue, ar.avg_rev,\n       CASE WHEN dr.revenue >= ar.avg_rev THEN 'Above Target' ELSE 'Below Target' END AS status\nFROM dept_revenue dr, avg_revenue ar\nORDER BY dr.revenue DESC;" },
+                { label: 'Category revenue breakdown', sql: "WITH cat_rev AS (\n    SELECT t.category, ROUND(SUM(t.price), 2) AS revenue, COUNT(*) AS appointments\n    FROM appointments a\n    JOIN treatments t ON a.treatment_id = t.treatment_id\n    WHERE a.status = 'completed'\n    GROUP BY t.category\n)\nSELECT *, ROUND(revenue * 100.0 / (SELECT SUM(revenue) FROM cat_rev), 1) AS pct_of_total\nFROM cat_rev ORDER BY revenue DESC;" }
+            ]
+        },
+        {
+            lessonId: 5,
+            title: 'Exercise: Provider Comparison Report',
+            type: 'exercise',
+            content: `## Exercise: Active Provider Report
+
+Use a CTE to find providers with significant completed appointment volume.`,
+            exercise: {
+                prompt: 'Write a CTE called "provider_counts" that calculates each staff member\'s full name (first_name || \' \' || last_name) as "provider" and COUNT of completed appointments as "num_completed". Then SELECT from the CTE only providers with more than 5 completed appointments. Sort by num_completed descending.',
+                startingCode: '-- Provider comparison report\n',
+                expectedQuery: "WITH provider_counts AS (\n    SELECT s.first_name || ' ' || s.last_name AS provider, COUNT(*) AS num_completed\n    FROM appointments a\n    JOIN staff s ON a.staff_id = s.staff_id\n    WHERE a.status = 'completed'\n    GROUP BY s.staff_id\n)\nSELECT provider, num_completed\nFROM provider_counts\nWHERE num_completed > 5\nORDER BY num_completed DESC;",
+                hints: [
+                    'CTE: WITH provider_counts AS (SELECT ... JOIN staff ... WHERE status = \'completed\' GROUP BY s.staff_id)',
+                    'Final SELECT: FROM provider_counts WHERE num_completed > 5 ORDER BY num_completed DESC.',
+                    "WITH provider_counts AS (\n    SELECT s.first_name || ' ' || s.last_name AS provider, COUNT(*) AS num_completed\n    FROM appointments a\n    JOIN staff s ON a.staff_id = s.staff_id\n    WHERE a.status = 'completed'\n    GROUP BY s.staff_id\n)\nSELECT provider, num_completed\nFROM provider_counts\nWHERE num_completed > 5\nORDER BY num_completed DESC;"
+                ],
+                orderMatters: true
+            }
+        },
+        {
+            lessonId: 6,
             title: 'Exercise: Client Loyalty Tiers',
             type: 'exercise',
             content: `## Exercise: Client Loyalty Report
@@ -171,7 +237,7 @@ Build a report that segments clients into loyalty tiers based on their total spe
             }
         },
         {
-            lessonId: 5,
+            lessonId: 7,
             title: 'Exercise: Category Depth Report',
             type: 'exercise',
             content: `## Exercise: Recursive Category Tree
@@ -185,6 +251,25 @@ Use a recursive CTE to show the full treatment category hierarchy with depth lev
                     'Base case: SELECT ... FROM treatment_categories WHERE parent_category_id IS NULL with depth = 0.',
                     'Recursive case: JOIN treatment_categories tc ON tc.parent_category_id = ct.category_id with depth + 1.',
                     "WITH RECURSIVE category_tree AS (\n    SELECT category_id, category_name, parent_category_id, 0 AS depth\n    FROM treatment_categories\n    WHERE parent_category_id IS NULL\n    UNION ALL\n    SELECT tc.category_id, tc.category_name, tc.parent_category_id, ct.depth + 1\n    FROM treatment_categories tc\n    JOIN category_tree ct ON tc.parent_category_id = ct.category_id\n)\nSELECT category_name, depth\nFROM category_tree\nORDER BY depth, category_name;"
+                ],
+                orderMatters: true
+            }
+        },
+        {
+            lessonId: 8,
+            title: 'Exercise: Month-over-Month Growth',
+            type: 'exercise',
+            content: `## Exercise: Revenue Growth Report
+
+Build a report showing monthly revenue with growth percentage compared to the previous month.`,
+            exercise: {
+                prompt: 'Use two CTEs. CTE 1 "monthly_revenue": group paid invoices by month (STRFTIME(\'%Y-%m\', invoice_date)) and SUM amount as "revenue" (ROUND to 2). CTE 2 "with_prev": add LAG(revenue) OVER (ORDER BY month) as "prev_revenue". Final SELECT: month, revenue, prev_revenue, and ROUND((revenue - prev_revenue) * 100.0 / prev_revenue, 1) as "growth_pct". Sort by month.',
+                startingCode: '-- Month-over-month revenue growth\n',
+                expectedQuery: "WITH monthly_revenue AS (\n    SELECT STRFTIME('%Y-%m', invoice_date) AS month, ROUND(SUM(amount), 2) AS revenue\n    FROM invoices WHERE status = 'paid'\n    GROUP BY month\n),\nwith_prev AS (\n    SELECT month, revenue, LAG(revenue) OVER (ORDER BY month) AS prev_revenue\n    FROM monthly_revenue\n)\nSELECT month, revenue, prev_revenue, ROUND((revenue - prev_revenue) * 100.0 / prev_revenue, 1) AS growth_pct\nFROM with_prev\nORDER BY month;",
+                hints: [
+                    'CTE 1: GROUP invoices by STRFTIME(\'%Y-%m\', invoice_date), SUM(amount). CTE 2: use LAG to get previous month.',
+                    'Growth formula: (revenue - prev_revenue) * 100.0 / prev_revenue. Use ROUND(..., 1).',
+                    "WITH monthly_revenue AS (\n    SELECT STRFTIME('%Y-%m', invoice_date) AS month, ROUND(SUM(amount), 2) AS revenue\n    FROM invoices WHERE status = 'paid'\n    GROUP BY month\n),\nwith_prev AS (\n    SELECT month, revenue, LAG(revenue) OVER (ORDER BY month) AS prev_revenue\n    FROM monthly_revenue\n)\nSELECT month, revenue, prev_revenue, ROUND((revenue - prev_revenue) * 100.0 / prev_revenue, 1) AS growth_pct\nFROM with_prev\nORDER BY month;"
                 ],
                 orderMatters: true
             }

@@ -177,6 +177,82 @@ SELECT first_name, last_name FROM clients WHERE email IS NOT NULL;
         },
         {
             lessonId: 5,
+            title: 'Use Case: Client Data Cleanup',
+            type: 'reading',
+            content: `## Real Scenario: Cleaning Up the CRM
+
+The spa's client database has grown messy over time. The office manager needs to identify records with issues.
+
+### Finding Missing Contact Info
+
+\`\`\`sql
+-- Clients with no email AND no phone — can't reach them at all!
+SELECT first_name, last_name, city, signup_date
+FROM clients
+WHERE email IS NULL AND phone IS NULL;
+\`\`\`
+
+### Building a Marketing Email List
+
+\`\`\`sql
+-- Clients with emails from specific high-value cities
+SELECT first_name, last_name, email, city
+FROM clients
+WHERE email IS NOT NULL
+  AND city IN ('Scottsdale', 'Paradise Valley')
+ORDER BY city, last_name;
+\`\`\`
+
+### Finding Referral Patterns
+
+\`\`\`sql
+-- Which referral sources bring clients from Phoenix?
+SELECT DISTINCT referral_source, city
+FROM clients
+WHERE city LIKE 'Ph%'
+  AND referral_source IS NOT NULL
+ORDER BY referral_source;
+\`\`\`
+
+### Data Quality Check
+
+\`\`\`sql
+-- How many clients are missing each piece of data?
+SELECT
+    COUNT(*) AS total_clients,
+    COUNT(email) AS has_email,
+    COUNT(phone) AS has_phone,
+    COUNT(*) - COUNT(email) AS missing_email,
+    COUNT(*) - COUNT(phone) AS missing_phone
+FROM clients;
+\`\`\``,
+            exampleQueries: [
+                { label: 'Unreachable clients', sql: 'SELECT first_name, last_name, city, signup_date FROM clients WHERE email IS NULL AND phone IS NULL;' },
+                { label: 'Email list (Scottsdale/PV)', sql: "SELECT first_name, last_name, email, city FROM clients WHERE email IS NOT NULL AND city IN ('Scottsdale', 'Paradise Valley') ORDER BY city, last_name;" },
+                { label: 'Data quality check', sql: 'SELECT COUNT(*) AS total_clients, COUNT(email) AS has_email, COUNT(phone) AS has_phone, COUNT(*) - COUNT(email) AS missing_email, COUNT(*) - COUNT(phone) AS missing_phone FROM clients;' }
+            ]
+        },
+        {
+            lessonId: 6,
+            title: 'Exercise: Find Premium Treatments',
+            type: 'exercise',
+            content: `## Exercise: Client Treatment Inquiry
+
+A client calls asking about laser treatments that fit their budget. Help the receptionist find the right options.`,
+            exercise: {
+                prompt: 'Find all treatments where the treatment_name contains "Laser" AND the price is less than 400. Show treatment_name and price, sorted by price ascending.',
+                startingCode: '-- Affordable laser treatments\n',
+                expectedQuery: "SELECT treatment_name, price FROM treatments WHERE treatment_name LIKE '%Laser%' AND price < 400 ORDER BY price ASC;",
+                hints: [
+                    'Use LIKE \'%Laser%\' for pattern matching combined with AND price < 400.',
+                    'SELECT treatment_name, price FROM treatments WHERE treatment_name LIKE \'%Laser%\' AND price < 400',
+                    "SELECT treatment_name, price FROM treatments WHERE treatment_name LIKE '%Laser%' AND price < 400 ORDER BY price ASC;"
+                ],
+                orderMatters: true
+            }
+        },
+        {
+            lessonId: 7,
             title: 'Exercise: Filter Spa Data',
             type: 'exercise',
             content: `## Exercise: Filter Spa Data
@@ -195,7 +271,7 @@ Use WHERE with comparisons, IN, and LIKE to find specific records.`,
             }
         },
         {
-            lessonId: 6,
+            lessonId: 8,
             title: 'Exercise: NULL Handling',
             type: 'exercise',
             content: `## Exercise: Working with NULLs
@@ -209,6 +285,25 @@ Practice finding records with missing data — a common real-world task when cle
                     'Use `IS NULL` to find missing values — never use `= NULL`.',
                     'SELECT first_name, last_name, email FROM clients WHERE phone IS NULL',
                     "SELECT first_name, last_name, email FROM clients WHERE phone IS NULL ORDER BY last_name;"
+                ],
+                orderMatters: true
+            }
+        },
+        {
+            lessonId: 9,
+            title: 'Exercise: VIP Marketing List',
+            type: 'exercise',
+            content: `## Exercise: Targeted Marketing Campaign
+
+Marketing wants to send a promotional email to high-value clients in premium zip codes who signed up recently.`,
+            exercise: {
+                prompt: 'Find clients in **Scottsdale or Paradise Valley** (use IN) who signed up on or after **\'2024-01-01\'** and have an email on file (IS NOT NULL). Show first_name, last_name, email, city, signup_date. Sort by signup_date descending.',
+                startingCode: '-- VIP marketing list\n',
+                expectedQuery: "SELECT first_name, last_name, email, city, signup_date FROM clients WHERE city IN ('Scottsdale', 'Paradise Valley') AND signup_date >= '2024-01-01' AND email IS NOT NULL ORDER BY signup_date DESC;",
+                hints: [
+                    'Combine three conditions with AND: city IN (...), signup_date >= \'2024-01-01\', email IS NOT NULL.',
+                    'Use IN (\'Scottsdale\', \'Paradise Valley\') for the city filter.',
+                    "SELECT first_name, last_name, email, city, signup_date FROM clients WHERE city IN ('Scottsdale', 'Paradise Valley') AND signup_date >= '2024-01-01' AND email IS NOT NULL ORDER BY signup_date DESC;"
                 ],
                 orderMatters: true
             }

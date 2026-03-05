@@ -14,7 +14,7 @@ const MODULE_04 = {
 Aggregate functions compute a single value from multiple rows:
 
 | Function | Purpose | Example |
-|----------|---------|---------|
+|----------|---------|---------||
 | \`COUNT(*)\` | Count all rows | How many clients? |
 | \`COUNT(col)\` | Count non-NULL values | Clients with emails? |
 | \`SUM(col)\` | Total | Total revenue |
@@ -161,6 +161,74 @@ GROUP BY category;
         },
         {
             lessonId: 4,
+            title: 'Use Case: Monthly Business Dashboard',
+            type: 'reading',
+            content: `## Real Scenario: Monthly Business Dashboard
+
+The spa owner wants a monthly snapshot showing key business metrics grouped by different dimensions.
+
+### Revenue by Payment Method
+
+\`\`\`sql
+SELECT payment_method,
+       COUNT(*) AS num_invoices,
+       ROUND(SUM(amount), 2) AS total_revenue,
+       ROUND(AVG(amount), 2) AS avg_invoice
+FROM invoices
+WHERE status = 'paid'
+GROUP BY payment_method
+ORDER BY total_revenue DESC;
+\`\`\`
+
+### Appointments by Status
+
+\`\`\`sql
+SELECT status, COUNT(*) AS count
+FROM appointments
+GROUP BY status
+ORDER BY count DESC;
+\`\`\`
+
+### Product Sales by Brand
+
+\`\`\`sql
+SELECT p.brand,
+       COUNT(ps.sale_id) AS units_sold,
+       ROUND(SUM(ps.quantity * ps.unit_price), 2) AS revenue
+FROM product_sales ps
+JOIN products p ON ps.product_id = p.product_id
+GROUP BY p.brand
+ORDER BY revenue DESC;
+\`\`\`
+
+These aggregated views give the owner a clear picture of business health at a glance.`,
+            exampleQueries: [
+                { label: 'Revenue by payment method', sql: "SELECT payment_method, COUNT(*) AS num_invoices, ROUND(SUM(amount), 2) AS total_revenue, ROUND(AVG(amount), 2) AS avg_invoice FROM invoices WHERE status = 'paid' GROUP BY payment_method ORDER BY total_revenue DESC;" },
+                { label: 'Appointments by status', sql: 'SELECT status, COUNT(*) AS count FROM appointments GROUP BY status ORDER BY count DESC;' },
+                { label: 'Top product brands', sql: 'SELECT p.brand, COUNT(ps.sale_id) AS units_sold, ROUND(SUM(ps.quantity * ps.unit_price), 2) AS revenue FROM product_sales ps JOIN products p ON ps.product_id = p.product_id GROUP BY p.brand ORDER BY revenue DESC;' }
+            ]
+        },
+        {
+            lessonId: 5,
+            title: 'Exercise: Product Sales Summary',
+            type: 'exercise',
+            content: `## Exercise: Brand Performance Report
+
+The inventory manager wants a quick overview of how many products each brand carries and their average price point.`,
+            exercise: {
+                prompt: 'Show each **brand** from the products table, the COUNT of products as "num_products", and the ROUND(AVG(price), 2) as "avg_price". Sort by num_products descending.',
+                startingCode: '-- Brand product summary\n',
+                expectedQuery: 'SELECT brand, COUNT(*) AS num_products, ROUND(AVG(price), 2) AS avg_price FROM products GROUP BY brand ORDER BY num_products DESC;',
+                hints: [
+                    'GROUP BY brand, then use COUNT(*) and ROUND(AVG(price), 2).',
+                    'SELECT brand, COUNT(*) AS num_products, ROUND(AVG(price), 2) AS avg_price FROM products GROUP BY brand',
+                    'SELECT brand, COUNT(*) AS num_products, ROUND(AVG(price), 2) AS avg_price FROM products GROUP BY brand ORDER BY num_products DESC;'
+                ],
+                orderMatters: true
+            }
+        },
+        {
+            lessonId: 6,
             title: 'Exercise: Spa Reports',
             type: 'exercise',
             content: `## Exercise: Staff Department Report
@@ -179,7 +247,7 @@ Build a summary report that a spa manager would use.`,
             }
         },
         {
-            lessonId: 5,
+            lessonId: 7,
             title: 'Exercise: Treatment Category Analysis',
             type: 'exercise',
             content: `## Exercise: Category Price Analysis
@@ -193,6 +261,25 @@ Analyze treatment pricing across categories.`,
                     'GROUP BY category, then use COUNT(*), MIN(price), and MAX(price).',
                     'HAVING COUNT(*) > 2 filters to categories with 3+ treatments.',
                     'SELECT category, COUNT(*) AS num_treatments, MIN(price) AS min_price, MAX(price) AS max_price FROM treatments GROUP BY category HAVING COUNT(*) > 2 ORDER BY num_treatments DESC;'
+                ],
+                orderMatters: true
+            }
+        },
+        {
+            lessonId: 8,
+            title: 'Exercise: Revenue by Payment Method',
+            type: 'exercise',
+            content: `## Exercise: Accountant's Payment Breakdown
+
+The accountant needs to see how revenue breaks down by payment method, but only for methods used frequently.`,
+            exercise: {
+                prompt: 'Show each **payment_method** from invoices (WHERE status = \'paid\'), the COUNT as "num_invoices", SUM(amount) ROUNDed to 2 as "total_revenue", and AVG(amount) ROUNDed to 2 as "avg_invoice". Only include payment methods with **more than 5 invoices**. Sort by total_revenue descending.',
+                startingCode: '-- Payment method revenue breakdown\n',
+                expectedQuery: "SELECT payment_method, COUNT(*) AS num_invoices, ROUND(SUM(amount), 2) AS total_revenue, ROUND(AVG(amount), 2) AS avg_invoice FROM invoices WHERE status = 'paid' GROUP BY payment_method HAVING COUNT(*) > 5 ORDER BY total_revenue DESC;",
+                hints: [
+                    'Start with WHERE status = \'paid\' to filter rows, then GROUP BY payment_method.',
+                    'Use HAVING COUNT(*) > 5 after GROUP BY. Remember: WHERE filters rows, HAVING filters groups.',
+                    "SELECT payment_method, COUNT(*) AS num_invoices, ROUND(SUM(amount), 2) AS total_revenue, ROUND(AVG(amount), 2) AS avg_invoice FROM invoices WHERE status = 'paid' GROUP BY payment_method HAVING COUNT(*) > 5 ORDER BY total_revenue DESC;"
                 ],
                 orderMatters: true
             }

@@ -48,7 +48,6 @@ WHERE client_id = 5;
 An index is like a book's index — it lets the database find rows without scanning every page:
 
 \`\`\`sql
--- Create an index on appointment dates
 CREATE INDEX idx_appointments_date ON appointments(appointment_date);
 \`\`\`
 
@@ -66,7 +65,6 @@ CREATE INDEX idx_appointments_date ON appointments(appointment_date);
 Index multiple columns together:
 
 \`\`\`sql
--- Index for queries filtering by status AND date
 CREATE INDEX idx_appt_status_date
 ON appointments(status, appointment_date);
 \`\`\`
@@ -76,7 +74,6 @@ Column order matters! Put the most selective column first.
 ### Viewing Indexes
 
 \`\`\`sql
--- List all indexes
 SELECT name, tbl_name FROM sqlite_master
 WHERE type = 'index' ORDER BY tbl_name;
 \`\`\`
@@ -100,11 +97,8 @@ A transaction groups multiple statements so they either **all succeed** or **all
 
 \`\`\`sql
 BEGIN TRANSACTION;
-
--- Transfer a client's credit
 UPDATE invoices SET amount = amount - 50 WHERE invoice_id = 1;
 UPDATE invoices SET discount = discount + 50 WHERE invoice_id = 1;
-
 COMMIT;
 \`\`\`
 
@@ -171,7 +165,6 @@ FROM staff s JOIN departments d ON s.department_id = d.department_id;
 ### 3. Format for Readability
 
 \`\`\`sql
--- Readable query with clear structure
 SELECT s.first_name || ' ' || s.last_name AS provider,
        d.department_name,
        COUNT(a.appointment_id) AS total_appointments
@@ -207,12 +200,63 @@ Remember the actual order SQL runs in:
 8. \`LIMIT\` / \`OFFSET\``,
             exampleQueries: [
                 { label: 'Well-formatted report', sql: "SELECT s.first_name || ' ' || s.last_name AS provider,\n       d.department_name,\n       COUNT(a.appointment_id) AS appointments,\n       ROUND(SUM(t.price), 2) AS revenue\nFROM staff s\nJOIN departments d ON s.department_id = d.department_id\nLEFT JOIN appointments a ON s.staff_id = a.staff_id\n    AND a.status = 'completed'\nLEFT JOIN treatments t ON a.treatment_id = t.treatment_id\nGROUP BY s.staff_id, d.department_name\nORDER BY revenue DESC;" },
-                { label: 'NOT EXISTS vs NOT IN', sql: "-- Safer than NOT IN when NULLs are possible\nSELECT first_name, last_name\nFROM clients c\nWHERE NOT EXISTS (\n    SELECT 1 FROM appointments a\n    WHERE a.client_id = c.client_id\n)\nORDER BY last_name;" },
+                { label: 'NOT EXISTS vs NOT IN', sql: "SELECT first_name, last_name\nFROM clients c\nWHERE NOT EXISTS (\n    SELECT 1 FROM appointments a\n    WHERE a.client_id = c.client_id\n)\nORDER BY last_name;" },
                 { label: 'CAST example', sql: "SELECT treatment_name,\n       price,\n       CAST(price AS INTEGER) AS rounded_price,\n       TYPEOF(price) AS original_type\nFROM treatments\nORDER BY price DESC\nLIMIT 10;" }
             ]
         },
         {
             lessonId: 5,
+            title: 'Use Case: Scaling the Spa Database',
+            type: 'reading',
+            content: `## Real Scenario: The Spa Has Grown
+
+The spa now has thousands of clients and queries are slowing down. Let's diagnose and fix performance issues.
+
+### Diagnosing Slow Queries
+
+\`\`\`sql
+-- This query scans ALL appointments — slow with 10,000+ rows
+EXPLAIN QUERY PLAN
+SELECT * FROM appointments
+WHERE status = 'completed' AND appointment_date > '2025-01-01';
+-- Result: SCAN TABLE appointments
+\`\`\`
+
+### Adding the Right Index
+
+\`\`\`sql
+CREATE INDEX idx_appt_status_date ON appointments(status, appointment_date);
+
+-- Now check again
+EXPLAIN QUERY PLAN
+SELECT * FROM appointments
+WHERE status = 'completed' AND appointment_date > '2025-01-01';
+-- Result: SEARCH TABLE appointments USING INDEX idx_appt_status_date
+\`\`\`
+
+### When NOT to Index
+
+- \`status\` alone has only 4 values (low cardinality) — not great alone
+- But \`status + appointment_date\` together is very selective
+- Don't index every column — each index slows down INSERT/UPDATE
+
+### Bulk Operations Need Transactions
+
+\`\`\`sql
+-- Without transaction: each INSERT is a separate disk write
+-- With transaction: all writes batched together
+BEGIN TRANSACTION;
+-- ... hundreds of INSERTs for end-of-month archival ...
+COMMIT;
+\`\`\``,
+            exampleQueries: [
+                { label: 'Before index', sql: "EXPLAIN QUERY PLAN\nSELECT * FROM appointments\nWHERE status = 'completed' AND appointment_date > '2025-01-01';" },
+                { label: 'After adding index', sql: "CREATE INDEX idx_appt_status_date ON appointments(status, appointment_date);\nEXPLAIN QUERY PLAN\nSELECT * FROM appointments\nWHERE status = 'completed' AND appointment_date > '2025-01-01';" },
+                { label: 'Index on client lookups', sql: "CREATE INDEX idx_clients_city ON clients(city);\nEXPLAIN QUERY PLAN\nSELECT * FROM clients WHERE city = 'Scottsdale';" }
+            ]
+        },
+        {
+            lessonId: 6,
             title: 'Exercise: Optimize a Slow Query',
             type: 'exercise',
             content: `## Exercise: Index for Performance
@@ -231,7 +275,64 @@ Create an index to speed up a common query pattern at the spa: looking up comple
             }
         },
         {
-            lessonId: 6,
+            lessonId: 7,
+            title: 'Exercise: Index for Client Lookups',
+            type: 'exercise',
+            content: `## Exercise: Speed Up City-Based Queries
+
+The front desk frequently looks up clients by city. Add an index to speed this up.`,
+            exercise: {
+                prompt: 'Create an index named "idx_clients_city" on clients(city). Then EXPLAIN QUERY PLAN SELECT * FROM clients WHERE city = \'Scottsdale\';',
+                startingCode: '-- Index for client city lookups\n',
+                expectedQuery: "CREATE INDEX idx_clients_city ON clients(city);\nEXPLAIN QUERY PLAN SELECT * FROM clients WHERE city = 'Scottsdale';",
+                hints: [
+                    'CREATE INDEX idx_clients_city ON clients(city);',
+                    'Then: EXPLAIN QUERY PLAN SELECT * FROM clients WHERE city = \'Scottsdale\';',
+                    "CREATE INDEX idx_clients_city ON clients(city);\nEXPLAIN QUERY PLAN SELECT * FROM clients WHERE city = 'Scottsdale';"
+                ],
+                orderMatters: false
+            }
+        },
+        {
+            lessonId: 8,
+            title: 'Exercise: Transaction for Booking',
+            type: 'exercise',
+            content: `## Exercise: Atomic Appointment Booking
+
+Book an appointment and create the invoice in a single atomic transaction.`,
+            exercise: {
+                prompt: 'Use a transaction to atomically: 1) INSERT an appointment (client_id 1, staff_id 5, treatment_id 3, appointment_date \'2025-06-01\', status \'scheduled\'), 2) INSERT an invoice (appointment_id = last_insert_rowid(), client_id 1, amount 350.00, invoice_date \'2025-06-01\', status \'pending\'). COMMIT, then SELECT * FROM appointments ORDER BY appointment_id DESC LIMIT 1.',
+                startingCode: '-- Atomic booking transaction\n',
+                expectedQuery: "BEGIN TRANSACTION;\nINSERT INTO appointments (client_id, staff_id, treatment_id, appointment_date, status) VALUES (1, 5, 3, '2025-06-01', 'scheduled');\nINSERT INTO invoices (appointment_id, client_id, amount, invoice_date, status) VALUES (last_insert_rowid(), 1, 350.00, '2025-06-01', 'pending');\nCOMMIT;\nSELECT * FROM appointments ORDER BY appointment_id DESC LIMIT 1;",
+                hints: [
+                    'Start with BEGIN TRANSACTION; then two INSERT statements, then COMMIT;',
+                    'Use last_insert_rowid() in the second INSERT to reference the appointment_id just created.',
+                    "BEGIN TRANSACTION;\nINSERT INTO appointments (client_id, staff_id, treatment_id, appointment_date, status) VALUES (1, 5, 3, '2025-06-01', 'scheduled');\nINSERT INTO invoices (appointment_id, client_id, amount, invoice_date, status) VALUES (last_insert_rowid(), 1, 350.00, '2025-06-01', 'pending');\nCOMMIT;\nSELECT * FROM appointments ORDER BY appointment_id DESC LIMIT 1;"
+                ],
+                orderMatters: false
+            }
+        },
+        {
+            lessonId: 9,
+            title: 'Exercise: Query Refactoring Challenge',
+            type: 'exercise',
+            content: `## Exercise: Rewrite a Bad Query
+
+Rewrite a poorly-written query using best practices: NOT EXISTS instead of NOT IN, explicit columns, proper aliases.`,
+            exercise: {
+                prompt: 'Find all clients who have NO paid invoices. Show first_name, last_name, and email. Use NOT EXISTS (not NOT IN). Sort by last_name ascending.',
+                startingCode: '-- Rewrite using best practices\n',
+                expectedQuery: "SELECT c.first_name, c.last_name, c.email\nFROM clients c\nWHERE NOT EXISTS (\n    SELECT 1 FROM invoices i\n    WHERE i.client_id = c.client_id\n      AND i.status = 'paid'\n)\nORDER BY c.last_name ASC;",
+                hints: [
+                    'NOT EXISTS is preferred over NOT IN because it handles NULLs correctly.',
+                    'WHERE NOT EXISTS (SELECT 1 FROM invoices i WHERE i.client_id = c.client_id AND i.status = \'paid\')',
+                    "SELECT c.first_name, c.last_name, c.email\nFROM clients c\nWHERE NOT EXISTS (\n    SELECT 1 FROM invoices i\n    WHERE i.client_id = c.client_id\n      AND i.status = 'paid'\n)\nORDER BY c.last_name ASC;"
+                ],
+                orderMatters: true
+            }
+        },
+        {
+            lessonId: 10,
             title: 'Exercise: Full Spa Dashboard Query',
             type: 'exercise',
             content: `## Exercise: Executive Dashboard

@@ -177,6 +177,59 @@ Without DISTINCT, you may get the same value repeated many times. DISTINCT is es
         },
         {
             lessonId: 5,
+            title: 'Use Case: Front Desk Quick Lookups',
+            type: 'reading',
+            content: `## Real Scenario: Front Desk Receptionist
+
+The front desk receptionist at Glow Spa needs quick answers throughout the day. Here's how SQL handles common lookups:
+
+### "What treatments do we offer and how much do they cost?"
+
+\`\`\`sql
+SELECT treatment_name AS "Treatment",
+       category AS "Category",
+       price AS "Price"
+FROM treatments
+ORDER BY category, treatment_name;
+\`\`\`
+
+### "Who's on our team?"
+
+\`\`\`sql
+SELECT first_name || ' ' || last_name AS "Staff Member",
+       role AS "Role",
+       department_id AS "Dept"
+FROM staff
+ORDER BY role, last_name;
+\`\`\`
+
+### "What cities do our clients come from?"
+
+\`\`\`sql
+SELECT DISTINCT city AS "City", state AS "State"
+FROM clients
+ORDER BY city;
+\`\`\`
+
+### "What products do we carry from each brand?"
+
+\`\`\`sql
+SELECT DISTINCT brand AS "Brand",
+       category AS "Product Type"
+FROM products
+ORDER BY brand, category;
+\`\`\`
+
+These simple queries power the everyday lookups that keep the spa running smoothly.`,
+            exampleQueries: [
+                { label: 'Treatment menu', sql: "SELECT treatment_name AS \"Treatment\", category AS \"Category\", price AS \"Price\" FROM treatments ORDER BY category, treatment_name;" },
+                { label: 'Staff directory', sql: "SELECT first_name || ' ' || last_name AS \"Staff Member\", role AS \"Role\" FROM staff ORDER BY role, last_name;" },
+                { label: 'Client city list', sql: 'SELECT DISTINCT city AS "City", state AS "State" FROM clients ORDER BY city;' },
+                { label: 'Product brands & types', sql: 'SELECT DISTINCT brand AS "Brand", category AS "Product Type" FROM products ORDER BY brand, category;' }
+            ]
+        },
+        {
+            lessonId: 6,
             title: 'Exercise: Your First Queries',
             type: 'exercise',
             content: `## Exercise: Your First Queries
@@ -190,6 +243,44 @@ Time to practice! Use what you've learned about \`SELECT\`, aliases, and \`DISTI
                     'Use `SELECT DISTINCT` to get unique values from a column.',
                     'Use `AS` to alias the column: `DISTINCT referral_source AS "Referral Source"`',
                     'SELECT DISTINCT referral_source AS "Referral Source" FROM clients ORDER BY referral_source;'
+                ],
+                orderMatters: true
+            }
+        },
+        {
+            lessonId: 7,
+            title: 'Exercise: Building a Treatment Menu',
+            type: 'exercise',
+            content: `## Exercise: Printable Treatment Menu
+
+The spa manager wants a clean, printable treatment menu to display in the lobby.`,
+            exercise: {
+                prompt: 'Show all treatments with treatment_name as "Treatment", category as "Category", and price as "Price". Sort by category first (ascending), then by treatment_name (ascending).',
+                startingCode: '-- Build a treatment menu for the lobby\n',
+                expectedQuery: 'SELECT treatment_name AS "Treatment", category AS "Category", price AS "Price" FROM treatments ORDER BY category ASC, treatment_name ASC;',
+                hints: [
+                    'Use AS to create aliases: treatment_name AS "Treatment", etc.',
+                    'ORDER BY category ASC, treatment_name ASC for double sorting.',
+                    'SELECT treatment_name AS "Treatment", category AS "Category", price AS "Price" FROM treatments ORDER BY category ASC, treatment_name ASC;'
+                ],
+                orderMatters: true
+            }
+        },
+        {
+            lessonId: 8,
+            title: 'Exercise: Client Contact List',
+            type: 'exercise',
+            content: `## Exercise: Client Contact Directory
+
+The marketing team needs a list of all client cities and a formatted contact list for Scottsdale clients.`,
+            exercise: {
+                prompt: 'Show all DISTINCT cities from the clients table, aliased as "Client City", sorted alphabetically.',
+                startingCode: '-- Unique client cities\n',
+                expectedQuery: 'SELECT DISTINCT city AS "Client City" FROM clients ORDER BY city;',
+                hints: [
+                    'Use SELECT DISTINCT city AS "Client City" FROM clients.',
+                    'Add ORDER BY city at the end to sort alphabetically.',
+                    'SELECT DISTINCT city AS "Client City" FROM clients ORDER BY city;'
                 ],
                 orderMatters: true
             }

@@ -133,6 +133,78 @@ LIMIT 10;
         },
         {
             lessonId: 4,
+            title: 'Use Case: Spa Operations Report',
+            type: 'reading',
+            content: `## Real Scenario: Daily Operations View
+
+The front desk builds a daily schedule by joining appointments with clients, staff, and treatments.
+
+### Today's Appointment Schedule
+
+\`\`\`sql
+SELECT a.appointment_date,
+       c.first_name || ' ' || c.last_name AS client,
+       t.treatment_name,
+       t.duration_minutes || ' min' AS duration,
+       s.first_name || ' ' || s.last_name AS provider,
+       d.department_name
+FROM appointments a
+JOIN clients c ON a.client_id = c.client_id
+JOIN treatments t ON a.treatment_id = t.treatment_id
+JOIN staff s ON a.staff_id = s.staff_id
+JOIN departments d ON s.department_id = d.department_id
+WHERE a.status = 'scheduled'
+ORDER BY a.appointment_date
+LIMIT 15;
+\`\`\`
+
+### Treatments Never Booked
+
+LEFT JOIN reveals which treatments have never been scheduled:
+
+\`\`\`sql
+SELECT t.treatment_name, t.category, t.price
+FROM treatments t
+LEFT JOIN appointments a ON t.treatment_id = a.treatment_id
+WHERE a.appointment_id IS NULL;
+\`\`\`
+
+### Departments With No Recent Activity
+
+\`\`\`sql
+SELECT d.department_name
+FROM departments d
+LEFT JOIN staff s ON d.department_id = s.department_id
+LEFT JOIN appointments a ON s.staff_id = a.staff_id
+WHERE a.appointment_id IS NULL;
+\`\`\``,
+            exampleQueries: [
+                { label: 'Appointment schedule (4 tables)', sql: "SELECT a.appointment_date, c.first_name || ' ' || c.last_name AS client, t.treatment_name, s.first_name || ' ' || s.last_name AS provider, d.department_name FROM appointments a JOIN clients c ON a.client_id = c.client_id JOIN treatments t ON a.treatment_id = t.treatment_id JOIN staff s ON a.staff_id = s.staff_id JOIN departments d ON s.department_id = d.department_id WHERE a.status = 'scheduled' ORDER BY a.appointment_date LIMIT 15;" },
+                { label: 'Never-booked treatments', sql: 'SELECT t.treatment_name, t.category, t.price FROM treatments t LEFT JOIN appointments a ON t.treatment_id = a.treatment_id WHERE a.appointment_id IS NULL;' },
+                { label: 'Staff without appointments', sql: "SELECT s.first_name || ' ' || s.last_name AS staff_name, s.role FROM staff s LEFT JOIN appointments a ON s.staff_id = a.staff_id WHERE a.appointment_id IS NULL;" }
+            ]
+        },
+        {
+            lessonId: 5,
+            title: 'Exercise: Staff Directory with Departments',
+            type: 'exercise',
+            content: `## Exercise: Staff Directory
+
+Build a complete staff directory that includes department names.`,
+            exercise: {
+                prompt: 'JOIN staff with departments to show first_name, last_name, role, and department_name. Sort by department_name ascending, then last_name ascending.',
+                startingCode: '-- Staff directory with departments\n',
+                expectedQuery: 'SELECT s.first_name, s.last_name, s.role, d.department_name FROM staff s JOIN departments d ON s.department_id = d.department_id ORDER BY d.department_name ASC, s.last_name ASC;',
+                hints: [
+                    'JOIN staff s with departments d ON s.department_id = d.department_id.',
+                    'SELECT the four columns with table aliases, then ORDER BY d.department_name, s.last_name.',
+                    'SELECT s.first_name, s.last_name, s.role, d.department_name FROM staff s JOIN departments d ON s.department_id = d.department_id ORDER BY d.department_name ASC, s.last_name ASC;'
+                ],
+                orderMatters: true
+            }
+        },
+        {
+            lessonId: 6,
             title: 'Exercise: Provider Revenue Report',
             type: 'exercise',
             content: `## Exercise: Who Brings in the Most Revenue?
@@ -151,7 +223,7 @@ Build a report showing how much revenue each provider has generated from complet
             }
         },
         {
-            lessonId: 5,
+            lessonId: 7,
             title: 'Exercise: Clients Without Visits',
             type: 'exercise',
             content: `## Exercise: Find Inactive Clients
@@ -165,6 +237,44 @@ The spa wants to send re-engagement emails to clients who signed up but never bo
                     'Use LEFT JOIN from clients to appointments, then filter for NULLs.',
                     'WHERE a.appointment_id IS NULL gives you clients with zero appointments.',
                     'SELECT c.first_name, c.last_name, c.email, c.signup_date FROM clients c LEFT JOIN appointments a ON c.client_id = a.client_id WHERE a.appointment_id IS NULL ORDER BY c.signup_date ASC;'
+                ],
+                orderMatters: true
+            }
+        },
+        {
+            lessonId: 8,
+            title: 'Exercise: Product Sales Detail',
+            type: 'exercise',
+            content: `## Exercise: Best-Selling Products
+
+Which products are generating the most revenue? The inventory manager needs this for reorder decisions.`,
+            exercise: {
+                prompt: 'JOIN products with product_sales. Show product_name, brand, SUM(quantity) as "total_sold", and ROUND(SUM(quantity * unit_price), 2) as "total_revenue". GROUP BY product, sort by total_revenue descending. LIMIT 10.',
+                startingCode: '-- Top 10 best-selling products\n',
+                expectedQuery: 'SELECT p.product_name, p.brand, SUM(ps.quantity) AS total_sold, ROUND(SUM(ps.quantity * ps.unit_price), 2) AS total_revenue FROM products p JOIN product_sales ps ON p.product_id = ps.product_id GROUP BY p.product_id ORDER BY total_revenue DESC LIMIT 10;',
+                hints: [
+                    'JOIN products p with product_sales ps ON p.product_id = ps.product_id.',
+                    'GROUP BY p.product_id, then SUM(ps.quantity) and SUM(ps.quantity * ps.unit_price).',
+                    'SELECT p.product_name, p.brand, SUM(ps.quantity) AS total_sold, ROUND(SUM(ps.quantity * ps.unit_price), 2) AS total_revenue FROM products p JOIN product_sales ps ON p.product_id = ps.product_id GROUP BY p.product_id ORDER BY total_revenue DESC LIMIT 10;'
+                ],
+                orderMatters: true
+            }
+        },
+        {
+            lessonId: 9,
+            title: 'Exercise: Full Appointment Detail Report',
+            type: 'exercise',
+            content: `## Exercise: Complete Appointment Report
+
+Build the comprehensive report that ties everything together — appointments, clients, treatments, staff, and departments.`,
+            exercise: {
+                prompt: 'Join 5 tables: appointments, clients, treatments, staff, and departments. Show appointment_date, client full name (first_name || \' \' || last_name) as "client", treatment_name, price, provider full name as "provider", and department_name. Filter for completed appointments only. Sort by appointment_date DESC. LIMIT 15.',
+                startingCode: '-- Full appointment detail report\n',
+                expectedQuery: "SELECT a.appointment_date, c.first_name || ' ' || c.last_name AS client, t.treatment_name, t.price, s.first_name || ' ' || s.last_name AS provider, d.department_name FROM appointments a JOIN clients c ON a.client_id = c.client_id JOIN treatments t ON a.treatment_id = t.treatment_id JOIN staff s ON a.staff_id = s.staff_id JOIN departments d ON s.department_id = d.department_id WHERE a.status = 'completed' ORDER BY a.appointment_date DESC LIMIT 15;",
+                hints: [
+                    'Chain JOINs: appointments → clients (client_id), → treatments (treatment_id), → staff (staff_id), → departments (department_id).',
+                    'Use first_name || \' \' || last_name for both client and provider names. WHERE a.status = \'completed\'.',
+                    "SELECT a.appointment_date, c.first_name || ' ' || c.last_name AS client, t.treatment_name, t.price, s.first_name || ' ' || s.last_name AS provider, d.department_name FROM appointments a JOIN clients c ON a.client_id = c.client_id JOIN treatments t ON a.treatment_id = t.treatment_id JOIN staff s ON a.staff_id = s.staff_id JOIN departments d ON s.department_id = d.department_id WHERE a.status = 'completed' ORDER BY a.appointment_date DESC LIMIT 15;"
                 ],
                 orderMatters: true
             }
