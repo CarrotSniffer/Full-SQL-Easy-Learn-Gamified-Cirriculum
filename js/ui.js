@@ -558,11 +558,100 @@ const UI = (() => {
         return div.innerHTML;
     }
 
+    function renderCommandExplorer(filterText) {
+        const body = document.getElementById('command-body');
+        const tabsEl = document.getElementById('command-category-tabs');
+        const searchEl = document.getElementById('command-search');
+        const filter = (filterText || '').toLowerCase().trim();
+
+        // Build category tabs (only on first render or when no filter)
+        if (!tabsEl.dataset.built) {
+            tabsEl.innerHTML = '<button class="cmd-tab active" data-cat="all">All</button>' +
+                SQL_REFERENCE.map(cat =>
+                    `<button class="cmd-tab" data-cat="${cat.category}">${cat.category}</button>`
+                ).join('');
+            tabsEl.dataset.built = '1';
+
+            tabsEl.addEventListener('click', (e) => {
+                const tab = e.target.closest('.cmd-tab');
+                if (!tab) return;
+                tabsEl.querySelectorAll('.cmd-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                tabsEl.dataset.activeCat = tab.dataset.cat;
+                searchEl.value = '';
+                renderCommandExplorer('');
+            });
+
+            searchEl.addEventListener('input', () => {
+                // Reset category to "All" when searching
+                tabsEl.querySelectorAll('.cmd-tab').forEach(t => t.classList.remove('active'));
+                tabsEl.querySelector('[data-cat="all"]').classList.add('active');
+                tabsEl.dataset.activeCat = 'all';
+                renderCommandExplorer(searchEl.value);
+            });
+        }
+
+        const activeCat = tabsEl.dataset.activeCat || 'all';
+
+        let html = '';
+        SQL_REFERENCE.forEach(cat => {
+            if (activeCat !== 'all' && cat.category !== activeCat) return;
+
+            const cmds = cat.commands.filter(cmd => {
+                if (!filter) return true;
+                return cmd.name.toLowerCase().includes(filter) ||
+                       cmd.description.toLowerCase().includes(filter) ||
+                       cmd.syntax.toLowerCase().includes(filter);
+            });
+
+            if (cmds.length === 0) return;
+
+            html += `<div class="cmd-category-section">
+                <div class="cmd-category-title">${cat.category}</div>`;
+
+            cmds.forEach(cmd => {
+                html += `<div class="cmd-card" data-example="${escapeHtml(cmd.example)}">
+                    <div class="cmd-card-header">
+                        <span class="cmd-name">${escapeHtml(cmd.name)}</span>
+                        <span class="cmd-module-tag">Module ${cmd.module}</span>
+                    </div>
+                    <div class="cmd-syntax"><code>${escapeHtml(cmd.syntax)}</code></div>
+                    <div class="cmd-desc">${escapeHtml(cmd.description)}</div>
+                    <div class="cmd-example-area">
+                        <button class="cmd-try-btn" title="Load into editor">Try it</button>
+                        <code class="cmd-example-code">${escapeHtml(cmd.example)}</code>
+                    </div>
+                </div>`;
+            });
+
+            html += '</div>';
+        });
+
+        if (!html) {
+            html = '<div class="cmd-no-results">No commands found matching your search.</div>';
+        }
+
+        body.innerHTML = html;
+
+        // "Try it" buttons — load example into editor
+        body.querySelectorAll('.cmd-try-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const card = btn.closest('.cmd-card');
+                const example = card.dataset.example;
+                Editor.setValue(example);
+                closeModals();
+            });
+        });
+
+        document.getElementById('command-modal').style.display = 'flex';
+    }
+
     function closeModals() {
         document.getElementById('schema-modal').style.display = 'none';
         document.getElementById('achievements-modal').style.display = 'none';
         document.getElementById('stats-modal').style.display = 'none';
         document.getElementById('daily-modal').style.display = 'none';
+        document.getElementById('command-modal').style.display = 'none';
     }
 
     function showAchievementToastEnhanced(achievement) {
@@ -589,7 +678,8 @@ const UI = (() => {
         renderSidebar, renderLesson, renderResults,
         renderExerciseFeedback, renderExerciseFeedbackWithXP,
         renderHint, renderSchemaModal,
-        renderAchievementsModal, updateProgressBar, updateXPBar,
+        renderAchievementsModal, renderCommandExplorer,
+        updateProgressBar, updateXPBar,
         showToast, showAchievementToast: showAchievementToastEnhanced,
         showXPPopup, showComboIndicator, hideComboIndicator,
         showLevelUpOverlay, renderStatsModal, renderDailyChallengeModal,

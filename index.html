@@ -43,6 +43,7 @@
         <div class="header-right">
             <button id="daily-challenge-btn" class="icon-btn" title="Daily Challenge">&#9876;</button>
             <button id="stats-btn" class="icon-btn" title="Player Stats">&#128202;</button>
+            <button id="command-ref-btn" class="icon-btn" title="SQL Command Reference">&#128218;</button>
             <button id="schema-btn" class="icon-btn" title="Schema Explorer">&#128451;</button>
             <button id="achievements-btn" class="icon-btn" title="Achievements">&#127942;</button>
             <button id="theme-toggle" class="icon-btn" title="Toggle theme">&#9790;</button>
@@ -138,6 +139,21 @@
         </div>
     </div>
 
+    <!-- Command Explorer Modal -->
+    <div id="command-modal" class="modal" style="display:none;">
+        <div class="modal-content modal-wide">
+            <div class="modal-header">
+                <h3>SQL Command Reference</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div id="command-modal-toolbar">
+                <input type="text" id="command-search" placeholder="Search commands... (e.g. ROUND, JOIN, date)" autocomplete="off">
+                <div id="command-category-tabs"></div>
+            </div>
+            <div id="command-body"></div>
+        </div>
+    </div>
+
     <!-- Achievements Modal -->
     <div id="achievements-modal" class="modal" style="display:none;">
         <div class="modal-content">
@@ -222,6 +238,9 @@
     <script src="js/curriculum/module10.js"></script>
     <script src="js/curriculum/module11.js"></script>
     <script src="js/curriculum/module12.js"></script>
+
+    <!-- Reference Data -->
+    <script src="js/sql-reference.js"></script>
 
     <!-- App Scripts (order matters) -->
     <script src="js/curriculum.js"></script>

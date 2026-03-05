@@ -174,6 +174,9 @@ const App = (() => {
         // Schema explorer
         document.getElementById('schema-btn').addEventListener('click', UI.renderSchemaModal);
 
+        // Command reference
+        document.getElementById('command-ref-btn').addEventListener('click', () => UI.renderCommandExplorer(''));
+
         // Achievements
         document.getElementById('achievements-btn').addEventListener('click', UI.renderAchievementsModal);
 
